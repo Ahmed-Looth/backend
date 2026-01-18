@@ -1,7 +1,7 @@
 Classroom Reservation System
 A Laravel API for managing classroom bookings, running on Docker with SQLite.
 
-🚀 Quick Setup
+Quick Setup
 1. Clone & Configure
 Clone the repo and create the environment file.
 

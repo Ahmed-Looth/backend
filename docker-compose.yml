@@ -4,7 +4,6 @@ services:
     container_name: classroom_reservation_system
     volumes:
       - .:/var/www
-      - sqlite_data:/var/www/database
     networks:
       - laravel
     env_file:
