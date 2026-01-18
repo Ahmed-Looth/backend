@@ -1,59 +1,185 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+Classroom Reservation System (Laravel API)
+A containerized backend API for managing internal classroom bookings, users, and approvals. Built with Laravel 11, Sanctum, and SQLite.
+🛠 Tech Stack
+Framework: Laravel (PHP 8.4)
+Database: SQLite
+Auth: Laravel Sanctum (Token-based)
+Container: Docker & Docker Compose
+📋 Prerequisites
+Docker Desktop (v4.x+)
+Docker Compose (v2+)
+🚀 Setup Instructions
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+1. Clone & Configure Environment
+   Clone the repository and set up the environment file.
 
-## About Laravel
+Bash
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+git clone <your-repo-url> classroom-reservation
+cd classroom-reservation
+cp .env.example .env
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Ensure your .env contains the following SQLite configuration:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Ini, TOML
 
-## Learning Laravel
+DB_CONNECTION=sqlite
+DB_DATABASE=/var/www/database/database.sqlite
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+2. Prepare Database
+   Create the SQLite database file and ensure permissions are correct.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Bash
 
-## Laravel Sponsors
+mkdir -p database
+touch database/database.sqlite
+chmod -R 775 database
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+3. Build & Run Containers
+   Build the containers and start the application.
 
-### Premium Partners
+Bash
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+docker compose build --no-cache
+docker compose up -d
 
-## Contributing
+4. Install Dependencies & Seed Data
+   Execute the following commands inside the container to generate keys, migrate, and seed default data.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Bash
 
-## Code of Conduct
+# Generate App Key
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+docker compose exec app php artisan key:generate
 
-## Security Vulnerabilities
+# Clear Caches
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+docker compose exec app php artisan optimize:clear
 
-## License
+# Migrate and Seed (Force required for production mode)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan db:seed --class=RoleSeeder --force
+docker compose exec app php artisan db:seed --class=SuperUserSeeder --force
+
+5. Start the Server
+   To make the API accessible via HTTP:
+
+Bash
+
+docker compose exec app php artisan serve --host=0.0.0.0 --port=8000
+
+Base URL: http://localhost:8000
+🔑 Access & Authentication
+Constraint: Only internal emails (@polytechnic.edu.mv) are valid for user creation.
+Default Superadmin Credentials
+Use these credentials to obtain your initial Bearer Token.
+Key
+Value
+Email
+superadmin@polytechnic.edu.mv
+Password
+ChangeMe123!
+
+Request Headers
+All API requests must include the following headers:
+
+HTTP
+
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer <your-token>
+
+📡 API Endpoints
+Authentication
+Method
+Endpoint
+Description
+POST
+/api/login
+Authenticate and retrieve token
+
+Bookings
+Method
+Endpoint
+Description
+GET
+/api/bookings
+List all bookings
+POST
+/api/bookings
+Create a new booking
+POST
+/api/bookings/{id}/cancel-request
+Request cancellation of a booking
+POST
+/api/bookings/{id}/approve
+(Admin) Approve a booking
+POST
+/api/bookings/{id}/reject
+(Admin) Reject a booking
+
+Rooms
+Method
+Endpoint
+Description
+GET
+/api/rooms
+List all rooms
+GET
+/api/rooms/available
+List currently available rooms
+POST
+/api/rooms
+(Admin) Create a new room
+PATCH
+/api/rooms/{id}/deactivate
+(Admin) Deactivate a room
+
+User Management & Logs
+Method
+Endpoint
+Description
+GET
+/api/users
+(Admin) List all users
+POST
+/api/users
+(Admin) Create a new user
+PATCH
+/api/users/{id}/role
+(Admin) Change user role
+GET
+/api/audit-logs
+(Superadmin) View system audit logs
+GET
+/api/audit-logs/export
+(Superadmin) Export logs
+
+❓ Troubleshooting
+500 Error / Missing APP_KEY
+Run the key generator inside the container:
+
+Bash
+
+docker compose exec app php artisan key:generate
+
+Database Errors
+Ensure the database file exists and is writable:
+
+Bash
+
+touch database/database.sqlite
+chmod 775 database/database.sqlite
+
+Redirects instead of JSON responses
+Ensure your API client (Postman/Thunder Client) is sending the header:
+Accept: application/json
+Full Reset
+To completely rebuild the environment and wipe data:
+
+Bash
+
+docker compose down -v
+docker compose build --no-cache
+docker compose up -d
