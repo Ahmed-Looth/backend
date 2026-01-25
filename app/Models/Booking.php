@@ -9,11 +9,13 @@ class Booking extends Model
 {
     protected $fillable = [
         'user_id',
+        'created_by',
         'room_id',
         'title',
         'start_time',
         'end_time',
         'status',
+        'admin_reason',
         'rejection_reason',
         'cancel_request_reason',
         'cancel_reason',
@@ -28,9 +30,15 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class);
     }
-
+    
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+    
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
     }
+
 }

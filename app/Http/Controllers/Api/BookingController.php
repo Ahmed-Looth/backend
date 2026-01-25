@@ -39,12 +39,21 @@ class BookingController extends Controller
     public function store(Request $request)
     {
         // Input validation
-        $validated = $request->validate([
+        $rules = [
             'room_id' => ['required', 'exists:rooms,id'],
             'title' => ['required', 'string', 'max:225'],
             'start_time' => ['required', 'date'],
             'end_time' => ['required', 'date', 'after:start_time'],
-        ]);
+        ];
+
+        // Rules if user is admin
+        if ($request->user()->isAdmin()) {
+            $rules['lecturer_id'] = ['required', 'exists:users,id'];
+            $rules['admin_reason'] = ['required', 'string', 'max:1000'];
+        }
+
+        // validate
+        $validated = $request->validate($rules);
 
         // Check room exists & active
         $room = Room::firstWhere([
@@ -52,18 +61,19 @@ class BookingController extends Controller
             'is_active' => true,
         ]);
 
+        // If room not available
         if (! $room) {
             return response()->json([
                 'success' => false,
-                'message' => 'Room is not availbale.',
+                'message' => 'Room not available',
             ], 422);
         }
 
-        // dates normalisation
+        // Normalise dates
         $start = Carbon::parse($validated['start_time']);
         $end = Carbon::parse($validated['end_time']);
 
-        // check overlap
+        // checking overlap
         $overlapExists = Booking::where('room_id', $room->id)
             ->whereIn('status', ['pending', 'approved'])
             ->where(function ($query) use ($start, $end) {
@@ -78,15 +88,33 @@ class BookingController extends Controller
             ], 422);
         }
 
+        $user = $request->user();
+
         // create booking
         $booking = Booking::create([
-            'user_id' => $request->user()->id,
+            // Lecturer
+            'user_id' => $user->isAdmin() ? $validated['lecturer_id'] : $user->id,
+
+            // Creator (admin or lecturer)
+            'created_by' => $user->id,
+
             'room_id' => $room->id,
             'title' => $validated['title'],
             'start_time' => $start,
             'end_time' => $end,
             'status' => 'pending',
+
+            'admin_reason' => $user->isAdmin() ? $validated['admin_reason'] : null,
         ]);
+
+        // adding to audit logs
+        audit(
+            'booking_created',
+            $booking,
+            null,
+            $booking->toArray(),
+            $booking->admin_reason
+        );
 
         // response
         return response()->json([
